@@ -1,0 +1,70 @@
+import { useState, useCallback } from 'react'
+import L from 'leaflet'
+import { savetiles, type SaveStatus } from 'leaflet.offline'
+import type { TileLayerOffline } from 'leaflet.offline'
+import { db } from '../db'
+
+export type CacheStatus = 'idle' | 'downloading' | 'cached' | 'error'
+
+export function useTileCache() {
+  const [status, setStatus] = useState<CacheStatus>('idle')
+  const [progress, setProgress] = useState({ done: 0, total: 0 })
+
+  const cacheTiles = useCallback(async (
+    map: L.Map,
+    layer: TileLayerOffline,
+    bounds: [[number, number], [number, number]],
+  ) => {
+    const leafletBounds = L.latLngBounds(bounds[0], bounds[1])
+
+    try {
+      const control = savetiles(layer as unknown as TileLayerOffline, {
+        zoomlevels: [10, 11, 12, 13, 14],
+        bounds: leafletBounds,
+        confirm: (status: SaveStatus, successCallback: () => void) => {
+          if (status._tilesforSave.length > 2000) {
+            const proceed = window.confirm(
+              `This route requires caching ${status._tilesforSave.length} tiles. Continue?`
+            )
+            if (!proceed) return
+          }
+          successCallback()
+        },
+        parallel: 5,
+        alwaysDownload: false,
+      })
+
+      control.addTo(map)
+
+      setStatus('downloading')
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      layer.on('savestart', (e: any) => {
+        setProgress({ done: 0, total: (e as SaveStatus)._tilesforSave.length })
+      })
+
+      layer.on('savetileend', () => {
+        setProgress((prev) => ({ ...prev, done: prev.done + 1 }))
+      })
+
+      layer.on('loadend', async () => {
+        await db.routes.update(1, { tilesCached: true })
+        setStatus('cached')
+        control.remove()
+      })
+
+      layer.on('tilesaveerror', () => {
+        setStatus('error')
+        control.remove()
+      })
+
+      // Trigger the save
+      control._saveTiles()
+    } catch (e) {
+      console.error('Tile caching failed:', e)
+      setStatus('error')
+    }
+  }, [])
+
+  return { status, progress, cacheTiles }
+}

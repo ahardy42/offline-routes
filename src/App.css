@@ -1,42 +1,146 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+/* Loading screen */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+/* Landing page */
+.landing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.landing-content {
   text-align: center;
+  max-width: 400px;
+  padding: 2rem;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.landing-content h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.landing-content p {
+  color: #666;
+  margin-bottom: 1.5rem;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.add-route-btn {
+  background: #3388ff;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
 }
 
-.card {
-  padding: 2em;
+.add-route-btn:hover {
+  background: #2670d9;
 }
 
-.read-the-docs {
-  color: #888;
+.add-route-btn:disabled {
+  background: #99bbee;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #d32f2f;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Map screen */
+.map-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.map-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border-bottom: 1px solid #ddd;
+  z-index: 1000;
+  flex-shrink: 0;
+}
+
+.route-name {
+  font-weight: 600;
+  margin-right: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-container {
+  flex: 1;
+  width: 100%;
+}
+
+/* Offline indicator */
+.offline-indicator {
+  flex-shrink: 0;
+}
+
+.cache-btn {
+  background: #3388ff;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cache-btn:hover {
+  background: #2670d9;
+}
+
+.cache-btn.error {
+  background: #d32f2f;
+  color: white;
+}
+
+.cache-status {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.cache-status.downloading {
+  color: #f59e0b;
+}
+
+.cache-status.cached {
+  color: #16a34a;
+  font-weight: 500;
+}
+
+/* Delete button */
+.delete-btn {
+  background: none;
+  color: #d32f2f;
+  border: 1px solid #d32f2f;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.delete-btn:hover {
+  background: #d32f2f;
+  color: white;
 }
