@@ -144,3 +144,77 @@
   background: #d32f2f;
   color: white;
 }
+
+/* Map button group */
+.map-btn-group {
+  position: absolute;
+  bottom: 2rem;
+  right: 1rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.map-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: none;
+  cursor: pointer;
+  color: #333;
+  padding: 0;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.map-btn + .map-btn {
+  border-top: 1px solid #e0e0e0;
+}
+
+.map-btn:active {
+  background: #e8e8e8;
+}
+
+.location-btn.locating {
+  color: #3388ff;
+}
+
+.location-btn.showing {
+  color: #3388ff;
+}
+
+.location-btn.following {
+  color: #3388ff;
+  background: #e8f0fe;
+}
+
+.location-error {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 0.5rem;
+  background: #d32f2f;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1.2s linear infinite;
+}
