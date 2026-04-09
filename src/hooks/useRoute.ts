@@ -17,9 +17,23 @@ export function useRoute() {
     const saved: SavedRoute = {
       id: 1,
       name,
+      type: 'route',
       gpxData: parsed.gpxData,
       geojson: parsed.geojson,
       bounds: parsed.bounds,
+      tilesCached: false,
+      createdAt: new Date(),
+    }
+    await db.routes.put(saved)
+    setRoute(saved)
+  }, [])
+
+  const saveArea = useCallback(async (bounds: [[number, number], [number, number]]) => {
+    const saved: SavedRoute = {
+      id: 1,
+      name: 'Saved Area',
+      type: 'area',
+      bounds,
       tilesCached: false,
       createdAt: new Date(),
     }
@@ -39,5 +53,5 @@ export function useRoute() {
     setRoute(null)
   }, [])
 
-  return { route, loading, saveRoute, deleteRoute }
+  return { route, loading, saveRoute, saveArea, deleteRoute }
 }

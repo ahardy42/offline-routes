@@ -4,8 +4,9 @@ import type { GeoJSON } from '@we-gold/gpxjs'
 export interface SavedRoute {
   id: number
   name: string
-  gpxData: string
-  geojson: GeoJSON
+  type: 'route' | 'area'
+  gpxData?: string
+  geojson?: GeoJSON
   bounds: [[number, number], [number, number]]
   tilesCached: boolean
   createdAt: Date

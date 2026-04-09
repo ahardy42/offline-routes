@@ -4,9 +4,10 @@ import type { ParsedGpx } from '../gpx/parser'
 
 interface LandingPageProps {
   onRouteLoaded: (name: string, parsed: ParsedGpx) => void
+  onExploreMap: () => void
 }
 
-export function LandingPage({ onRouteLoaded }: LandingPageProps) {
+export function LandingPage({ onRouteLoaded, onExploreMap }: LandingPageProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -51,6 +52,13 @@ export function LandingPage({ onRouteLoaded }: LandingPageProps) {
           onChange={handleFile}
           hidden
         />
+
+        <button
+          className="explore-btn"
+          onClick={onExploreMap}
+        >
+          Just Go to Map
+        </button>
 
         {error && <p className="error">{error}</p>}
       </div>

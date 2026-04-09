@@ -7,6 +7,7 @@ interface MapControlButtonsProps {
   onLocationPress: () => void
   onLocationLongPress: () => void
   onFitRoute: () => void
+  showFitRoute?: boolean
 }
 
 const LONG_PRESS_MS = 600
@@ -17,6 +18,7 @@ export function MapControlButtons({
   onLocationPress,
   onLocationLongPress,
   onFitRoute,
+  showFitRoute = true,
 }: MapControlButtonsProps) {
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const didLongPress = useRef(false)
@@ -97,15 +99,17 @@ export function MapControlButtons({
       >
         {getLocationIcon()}
       </button>
-      <button
-        className="map-btn fit-route-btn"
-        onClick={onFitRoute}
-        title="Fit route"
-      >
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-        </svg>
-      </button>
+      {showFitRoute && (
+        <button
+          className="map-btn fit-route-btn"
+          onClick={onFitRoute}
+          title="Fit route"
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+          </svg>
+        </button>
+      )}
       {locationError && (
         <div className="location-error">{locationError}</div>
       )}
