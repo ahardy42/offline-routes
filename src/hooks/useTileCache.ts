@@ -19,15 +19,9 @@ export function useTileCache() {
 
     try {
       const control = savetiles(layer as unknown as TileLayerOffline, {
-        zoomlevels: [10, 11, 12, 13, 14],
+        zoomlevels: [10, 11, 12, 13, 14, 15],
         bounds: leafletBounds,
         confirm: (status: SaveStatus, successCallback: () => void) => {
-          if (status._tilesforSave.length > 2000) {
-            const proceed = window.confirm(
-              `This route requires caching ${status._tilesforSave.length} tiles. Continue?`
-            )
-            if (!proceed) return
-          }
           successCallback()
         },
         parallel: 5,
@@ -39,24 +33,34 @@ export function useTileCache() {
       setStatus('downloading')
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      layer.on('savestart', (e: any) => {
+      const onSaveStart = (e: any) => {
         setProgress({ done: 0, total: (e as SaveStatus)._tilesforSave.length })
-      })
-
-      layer.on('savetileend', () => {
+      }
+      const onSaveTileEnd = () => {
         setProgress((prev) => ({ ...prev, done: prev.done + 1 }))
-      })
-
-      layer.on('loadend', async () => {
+      }
+      const cleanup = () => {
+        layer.off('savestart', onSaveStart)
+        layer.off('savetileend', onSaveTileEnd)
+        layer.off('loadend', onLoadEnd)
+        layer.off('tilesaveerror', onError)
+      }
+      const onLoadEnd = async () => {
         await db.routes.update(1, { tilesCached: true })
         setStatus('cached')
         control.remove()
-      })
-
-      layer.on('tilesaveerror', () => {
+        cleanup()
+      }
+      const onError = () => {
         setStatus('error')
         control.remove()
-      })
+        cleanup()
+      }
+
+      layer.on('savestart', onSaveStart)
+      layer.on('savetileend', onSaveTileEnd)
+      layer.on('loadend', onLoadEnd)
+      layer.on('tilesaveerror', onError)
 
       // Trigger the save
       control._saveTiles()

@@ -3,16 +3,14 @@ import type { CacheStatus } from '../hooks/useTileCache'
 interface OfflineIndicatorProps {
   status: CacheStatus
   progress: { done: number; total: number }
-  onCache: () => void
+  onRetry: () => void
 }
 
-export function OfflineIndicator({ status, progress, onCache }: OfflineIndicatorProps) {
+export function OfflineIndicator({ status, progress, onRetry }: OfflineIndicatorProps) {
   return (
     <div className="offline-indicator">
       {status === 'idle' && (
-        <button onClick={onCache} className="cache-btn">
-          Save for offline
-        </button>
+        <span className="cache-status downloading">Preparing cache...</span>
       )}
       {status === 'downloading' && (
         <span className="cache-status downloading">
@@ -23,7 +21,7 @@ export function OfflineIndicator({ status, progress, onCache }: OfflineIndicator
         <span className="cache-status cached">Available offline</span>
       )}
       {status === 'error' && (
-        <button onClick={onCache} className="cache-btn error">
+        <button onClick={onRetry} className="cache-btn error">
           Retry cache
         </button>
       )}

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { MapContainer, GeoJSON } from 'react-leaflet'
 import type { Map as LeafletMap } from 'leaflet'
 import type { TileLayerOffline } from 'leaflet.offline'
@@ -29,19 +29,25 @@ export function MapScreen({ route, onDelete }: MapScreenProps) {
   } = useUserLocation()
 
   const mapRef = useRef<LeafletMap | null>(null)
-  const layerRef = useRef<TileLayerOffline | null>(null)
+  const [tileLayer, setTileLayer] = useState<TileLayerOffline | null>(null)
   const [tileStatus] = useState(
     route.tilesCached ? 'cached' as const : 'idle' as const
   )
   const actualStatus = cacheStatus === 'idle' ? tileStatus : cacheStatus
 
   const handleLayerReady = useCallback((layer: TileLayerOffline) => {
-    layerRef.current = layer
+    setTileLayer(layer)
   }, [])
 
-  function handleCache() {
-    if (mapRef.current && layerRef.current) {
-      cacheTiles(mapRef.current, layerRef.current, route.bounds)
+  // Auto-start tile caching once the layer is ready
+  useEffect(() => {
+    if (actualStatus !== 'idle' || !mapRef.current || !tileLayer) return
+    cacheTiles(mapRef.current, tileLayer, route.bounds)
+  }, [actualStatus, cacheTiles, route.bounds, tileLayer])
+
+  function handleRetryCache() {
+    if (mapRef.current && tileLayer) {
+      cacheTiles(mapRef.current, tileLayer, route.bounds)
     }
   }
 
@@ -57,7 +63,7 @@ export function MapScreen({ route, onDelete }: MapScreenProps) {
         <OfflineIndicator
           status={actualStatus}
           progress={progress}
-          onCache={handleCache}
+          onRetry={handleRetryCache}
         />
         <DeleteRouteButton onDelete={onDelete} />
       </div>
