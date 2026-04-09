@@ -21,7 +21,7 @@ export function useTileCache() {
       const control = savetiles(layer as unknown as TileLayerOffline, {
         zoomlevels: [10, 11, 12, 13, 14, 15],
         bounds: leafletBounds,
-        confirm: (status: SaveStatus, successCallback: () => void) => {
+        confirm: (_: SaveStatus, successCallback: () => void) => {
           successCallback()
         },
         parallel: 5,
