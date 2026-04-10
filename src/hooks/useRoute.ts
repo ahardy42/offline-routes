@@ -13,16 +13,18 @@ export function useRoute() {
     })
   }, [])
 
-  const saveRoute = useCallback(async (name: string, parsed: ParsedGpx) => {
+  const saveRoute = useCallback(async (name: string, parsed?: ParsedGpx) => {
     const saved: SavedRoute = {
       id: 1,
+      type: parsed ? 'route' : 'explore',
       name,
-      type: 'route',
-      gpxData: parsed.gpxData,
-      geojson: parsed.geojson,
-      bounds: parsed.bounds,
       tilesCached: false,
       createdAt: new Date(),
+    }
+    if (parsed) {
+      saved.gpxData = parsed.gpxData
+      saved.geojson = parsed.geojson
+      saved.bounds = parsed.bounds
     }
     await db.routes.put(saved)
     setRoute(saved)
@@ -34,6 +36,18 @@ export function useRoute() {
       name: 'Saved Area',
       type: 'area',
       bounds,
+      tilesCached: false,
+      createdAt: new Date(),
+    }
+    await db.routes.put(saved)
+    setRoute(saved)
+  }, [])
+
+  const dismissExplore = useCallback(async () => {
+    const saved: SavedRoute = {
+      id: 1,
+      name: 'Explore',
+      type: 'area',
       tilesCached: false,
       createdAt: new Date(),
     }
@@ -53,5 +67,5 @@ export function useRoute() {
     setRoute(null)
   }, [])
 
-  return { route, loading, saveRoute, saveArea, deleteRoute }
+  return { route, loading, saveRoute, saveArea, dismissExplore, deleteRoute }
 }

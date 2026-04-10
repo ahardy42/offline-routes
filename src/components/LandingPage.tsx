@@ -3,8 +3,8 @@ import { parseGpxFile } from '../gpx/parser'
 import type { ParsedGpx } from '../gpx/parser'
 
 interface LandingPageProps {
-  onRouteLoaded: (name: string, parsed: ParsedGpx) => void
-  onExploreMap: () => void
+  onRouteLoaded: (name: string, parsed: ParsedGpx) => Promise<void>
+  onExploreMap: () => Promise<void>
 }
 
 export function LandingPage({ onRouteLoaded, onExploreMap }: LandingPageProps) {
@@ -22,7 +22,7 @@ export function LandingPage({ onRouteLoaded, onExploreMap }: LandingPageProps) {
     try {
       const parsed = await parseGpxFile(file)
       const name = file.name.replace(/\.gpx$/i, '')
-      onRouteLoaded(name, parsed)
+      await onRouteLoaded(name, parsed)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to parse GPX file')
     } finally {

@@ -47,14 +47,13 @@ export function CacheBoundaryOverlay({ onAreaChange }: CacheBoundaryOverlayProps
 
   const map = useMapEvents({
     move: () => updateBounds(map),
-    moveend: () => updateBounds(map),
     zoomend: () => updateBounds(map),
   })
 
-  // Fire initial bounds calculation via a synthetic event
+  // Calculate initial bounds once the map is ready
   useEffect(() => {
-    map.fireEvent('moveend')
-  }, [map])
+    map.whenReady(() => updateBounds(map))
+  }, [map, updateBounds])
 
   if (!rectBounds) return null
 

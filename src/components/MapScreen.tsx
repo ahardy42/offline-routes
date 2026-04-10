@@ -10,16 +10,23 @@ import { UserLocationMarker } from './UserLocationMarker'
 import { CacheBoundaryOverlay } from './CacheBoundaryOverlay'
 import { useTileCache } from '../hooks/useTileCache'
 import { useUserLocation } from '../hooks/useUserLocation'
-import type { SavedRoute } from '../db'
 import { MAX_AREA_SQ_MILES, VT_CENTER, VT_ZOOM, LOCATION_ZOOM } from '../lib/constants'
+import type { SavedRoute } from '../db'
 
-type MapScreenProps =
-  | { route: SavedRoute; onDelete: () => void; onSaveArea?: undefined; onDismiss?: undefined }
-  | { route?: undefined; onDelete?: undefined; onSaveArea: (bounds: [[number, number], [number, number]]) => void; onDismiss: () => void }
+type MapScreenProps = {
+  route: SavedRoute
+  onDelete: () => Promise<void>
+  onSaveArea: (bounds: [[number, number], [number, number]]) => Promise<void>
+  onDismissBoundary: () => Promise<void>
+}
 
-export function MapScreen(props: MapScreenProps) {
-  const { route } = props
-  const isExploreMode = !route
+export function MapScreen({ route, onDelete, onSaveArea, onDismissBoundary }: MapScreenProps) {
+  // Derived from route prop — no local "mode" state needed
+  const showBoundary = route.type === 'explore'
+  const isRoute = route.type === 'route'
+  const hasGeo = isRoute && !!route.geojson
+  const hasBounds = !!route.bounds
+  const needsGeolocate = !isRoute && !hasBounds
 
   const { status: cacheStatus, progress, cacheTiles } = useTileCache()
   const {
@@ -34,21 +41,18 @@ export function MapScreen(props: MapScreenProps) {
 
   const mapRef = useRef<LeafletMap | null>(null)
   const [tileLayer, setTileLayer] = useState<TileLayerOffline | null>(null)
-  const [tileStatus] = useState(
-    route?.tilesCached ? 'cached' as const : 'idle' as const
-  )
-  const actualStatus = cacheStatus === 'idle' ? tileStatus : cacheStatus
 
-  // Explore mode state
+  // Boundary overlay state (only used when showBoundary)
   const [exploreArea, setExploreArea] = useState<number>(0)
   const [exploreBounds, setExploreBounds] = useState<[[number, number], [number, number]] | null>(null)
+
+  // Geolocation for initial map center (explore/area without bounds)
   const [initialCenter, setInitialCenter] = useState<[number, number] | null>(null)
   const [initialZoom, setInitialZoom] = useState<number>(VT_ZOOM)
-  const [geoChecked, setGeoChecked] = useState(!isExploreMode)
+  const [geoChecked, setGeoChecked] = useState(!needsGeolocate)
 
-  // In explore mode, try to get user location for initial center
   useEffect(() => {
-    if (!isExploreMode) return
+    if (!needsGeolocate) return
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setInitialCenter([pos.coords.latitude, pos.coords.longitude])
@@ -62,27 +66,27 @@ export function MapScreen(props: MapScreenProps) {
       },
       { timeout: 5000 }
     )
-  }, [isExploreMode])
+  }, [needsGeolocate])
 
   const handleLayerReady = useCallback((layer: TileLayerOffline) => {
     setTileLayer(layer)
   }, [])
 
-  // Auto-start tile caching once the layer is ready (route mode only)
+  // Auto-start tile caching when layer is ready and we have bounds to cache
   useEffect(() => {
-    if (isExploreMode) return
-    if (actualStatus !== 'idle' || !mapRef.current || !tileLayer) return
+    if (showBoundary) return
+    if (cacheStatus !== 'idle' || !mapRef.current || !tileLayer || !route?.bounds) return
     cacheTiles(mapRef.current, tileLayer, route.bounds)
-  }, [isExploreMode, actualStatus, cacheTiles, route?.bounds, tileLayer])
+  }, [showBoundary, cacheStatus, cacheTiles, route?.bounds, tileLayer])
 
   function handleRetryCache() {
-    if (mapRef.current && tileLayer && route) {
+    if (mapRef.current && tileLayer && route?.bounds) {
       cacheTiles(mapRef.current, tileLayer, route.bounds)
     }
   }
 
   function handleFitRoute() {
-    if (!route) return
+    if (!route?.bounds) return
     stopFollowing()
     mapRef.current?.fitBounds(route.bounds, { padding: [20, 20] })
   }
@@ -95,21 +99,31 @@ export function MapScreen(props: MapScreenProps) {
   function handleSaveArea() {
     if (!exploreBounds || !mapRef.current || !tileLayer) return
     if (exploreArea > MAX_AREA_SQ_MILES) return
-    props.onSaveArea!(exploreBounds)
+    onSaveArea(exploreBounds)
     cacheTiles(mapRef.current, tileLayer, exploreBounds)
   }
 
   const areaExceeded = exploreArea > MAX_AREA_SQ_MILES
 
-  // Wait for geolocation check in explore mode
-  if (isExploreMode && !geoChecked) {
+  // Show caching UI only when there are bounds (something to cache) or caching is active
+  const showCacheStatus = hasBounds || cacheStatus !== 'idle'
+
+  if (needsGeolocate && !geoChecked) {
     return <div className="loading">Getting location...</div>
   }
 
   return (
     <div className="map-screen">
       <div className="map-controls">
-        {isExploreMode ? (
+        {!isRoute && (
+          <button className="back-btn" onClick={onDelete}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
+
+        {showBoundary ? (
           <>
             <span className="area-indicator">
               ~{Math.round(exploreArea)} sq mi
@@ -122,42 +136,41 @@ export function MapScreen(props: MapScreenProps) {
             >
               Save Area
             </button>
-            <button
-              className="dismiss-btn"
-              onClick={props.onDismiss}
-            >
+            <button className="dismiss-btn" onClick={onDismissBoundary}>
               Dismiss
             </button>
           </>
         ) : (
           <>
-            <span className="route-name">{route.name}</span>
-            <OfflineIndicator
-              status={actualStatus}
-              progress={progress}
-              onRetry={handleRetryCache}
-            />
-            <DeleteRouteButton onDelete={props.onDelete} />
+            <span className="route-name">{route?.name}</span>
+            {showCacheStatus && (
+              <OfflineIndicator
+                status={cacheStatus}
+                progress={progress}
+                onRetry={handleRetryCache}
+              />
+            )}
+            {isRoute && <DeleteRouteButton onDelete={onDelete} />}
           </>
         )}
       </div>
 
       <MapContainer
-        center={isExploreMode ? (initialCenter ?? VT_CENTER) : undefined}
-        zoom={isExploreMode ? initialZoom : undefined}
-        bounds={!isExploreMode ? route.bounds : undefined}
-        boundsOptions={!isExploreMode ? { padding: [20, 20] } : undefined}
+        center={needsGeolocate ? (initialCenter ?? VT_CENTER) : undefined}
+        zoom={needsGeolocate ? initialZoom : undefined}
+        bounds={hasBounds ? route.bounds : undefined}
+        boundsOptions={hasBounds ? { padding: [20, 20] } : undefined}
         className="map-container"
         ref={mapRef}
       >
         <OfflineTileLayer onLayerReady={handleLayerReady} />
-        {!isExploreMode && route.geojson && (
+        {hasGeo && (
           <GeoJSON
             data={route.geojson as unknown as GeoJSON.FeatureCollection}
             style={{ color: '#3388ff', weight: 4 }}
           />
         )}
-        {isExploreMode && (
+        {showBoundary && (
           <CacheBoundaryOverlay onAreaChange={handleAreaChange} />
         )}
         <UserLocationMarker
@@ -173,7 +186,7 @@ export function MapScreen(props: MapScreenProps) {
         onLocationPress={handleLocationPress}
         onLocationLongPress={handleLocationLongPress}
         onFitRoute={handleFitRoute}
-        showFitRoute={!isExploreMode}
+        showFitRoute={isRoute}
       />
     </div>
   )
