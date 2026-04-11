@@ -1,73 +1,41 @@
-# React + TypeScript + Vite
+# Offline Routes
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A simple, privacy-first PWA for cyclists who want basic navigation and radar awareness without the overhead of a dedicated head unit or ride-tracking app. Upload a GPX route, cache map tiles for offline use, pair a Garmin Varia radar over Bluetooth, and ride. No accounts, no cloud sync, no ride recording — just turn-by-turn visibility for soul rides.
 
-Currently, two official plugins are available:
+## Privacy First
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Everything runs entirely on your device:
 
-## React Compiler
+- **No server, no accounts** — the app is static HTML/JS served from a CDN. There is no backend.
+- **All data stays in IndexedDB** — routes, cached map tiles, and paired device info are stored locally in the browser. Nothing leaves your phone.
+- **No analytics or tracking** — zero third-party scripts, no telemetry, no cookies.
+- **BLE connections are local** — Bluetooth device pairing uses the Web Bluetooth API directly between your browser and the device. No data is relayed.
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+If you clear your browser data, everything is gone. That's by design.
 
-## Expanding the ESLint configuration
+## Running Locally
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Requires [Node.js](https://nodejs.org/) (v18+) and [pnpm](https://pnpm.io/).
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm install
+pnpm dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The dev server runs at `localhost:5173`. BLE pairing requires Chrome/Edge (Web Bluetooth is not supported in Safari or Firefox).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+To build for production:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm build
+pnpm preview
 ```
+
+## Contributing
+
+1. Fork the repo and create a branch
+2. `pnpm install && pnpm dev` to get running
+3. Make your changes — `pnpm lint` and `pnpm build` should pass clean
+4. Open a PR against `giggity`
+
+No test framework is set up yet, so manual testing is the current bar. If you're adding a new BLE device type, the extension point is `BLE_DEVICE_CONFIGS` in `src/lib/ble.ts`.
