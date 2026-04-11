@@ -31,6 +31,8 @@ export function LandingPage({ onRouteLoaded, onExploreMap }: LandingPageProps) {
     }
   }
 
+  const carsBlurb = navigator.bluetooth ? ' see cars behind you,' : ''
+
   return (
     <div className="landing">
       <div className="landing-topo" />
@@ -48,7 +50,7 @@ export function LandingPage({ onRouteLoaded, onExploreMap }: LandingPageProps) {
         </header>
 
         <p className="landing-tagline">
-          A simple bike computer on your phone. Navigate your ride, see cars behind you, and stay off the grid.
+          A simple bike computer on your phone. Navigate your ride,{carsBlurb} and stay off the grid.
         </p>
 
         <div className="landing-features">
@@ -81,19 +83,21 @@ export function LandingPage({ onRouteLoaded, onExploreMap }: LandingPageProps) {
             </div>
           </div>
 
-          <div className="feature-card" style={{ animationDelay: '0.3s' }}>
-            <div className="feature-icon">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11" />
-              </svg>
+          {!!navigator.bluetooth && (
+            <div className="feature-card" style={{ animationDelay: '0.3s' }}>
+              <div className="feature-icon">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11" />
+                </svg>
+              </div>
+              <div>
+                <strong>Radar awareness</strong>
+                <span>Pair a Garmin Varia over Bluetooth to see vehicles approaching from behind.</span>
+              </div>
             </div>
-            <div>
-              <strong>Radar awareness</strong>
-              <span>Pair a Garmin Varia over Bluetooth to see vehicles approaching from behind.</span>
-            </div>
-          </div>
+          )}
 
-          <div className="feature-card" style={{ animationDelay: '0.4s' }}>
+          <div className="feature-card" style={{ animationDelay: navigator.bluetooth ? '0.4s' : '0.3s' }}>
             <div className="feature-icon">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
