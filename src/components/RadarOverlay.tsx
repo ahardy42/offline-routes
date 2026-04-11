@@ -24,15 +24,12 @@ export function RadarOverlay({ threats }: RadarOverlayProps) {
   return (
     <div className="radar-overlay">
       <div className={`radar-column ${level !== 'none' ? `threat-${level}` : ''}`}>
-        {/* User position dot at top */}
-        <div className="radar-user-dot" />
-
         {/* Threat dots positioned by distance */}
-        {threats.map((threat) => {
+        {threats.map((threat, i) => {
           const yPercent = Math.min((threat.distance / MAX_RADAR_DISTANCE) * 100, 100)
           return (
             <div
-              key={threat.id}
+              key={i}
               className="radar-threat-dot"
               style={{ top: `${yPercent}%` }}
             />

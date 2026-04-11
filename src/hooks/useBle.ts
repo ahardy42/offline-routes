@@ -16,6 +16,14 @@ export interface ConnectedDevice {
   name: string
 }
 
+interface DeviceListeners {
+  disconnect: () => void
+  batteryChange?: EventListener
+  dataChange?: EventListener
+  batteryChar?: BluetoothRemoteGATTCharacteristic
+  dataChar?: BluetoothRemoteGATTCharacteristic
+}
+
 const MAX_RECONNECT_ATTEMPTS = 3
 const RECONNECT_DELAYS = [1000, 2000, 4000]
 
@@ -26,6 +34,7 @@ export function useBle() {
 
   const reconnectAttempts = useRef<Map<string, number>>(new Map())
   const reconnectTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const deviceListeners = useRef<Map<string, DeviceListeners>>(new Map())
   const pausedRef = useRef(false)
   const mountedRef = useRef(true)
   const connectDeviceRef = useRef<(device: BluetoothDevice, type: BleDeviceType) => Promise<boolean>>(
@@ -34,7 +43,21 @@ export function useBle() {
 
   const bleAvailable = typeof navigator !== 'undefined' && !!navigator.bluetooth
 
-  const cleanupDevice = useCallback((deviceId: string) => {
+  const removeDeviceListeners = useCallback((deviceId: string, device: BluetoothDevice) => {
+    const listeners = deviceListeners.current.get(deviceId)
+    if (!listeners) return
+
+    device.removeEventListener('gattserverdisconnected', listeners.disconnect)
+    if (listeners.batteryChar && listeners.batteryChange) {
+      listeners.batteryChar.removeEventListener('characteristicvaluechanged', listeners.batteryChange)
+    }
+    if (listeners.dataChar && listeners.dataChange) {
+      listeners.dataChar.removeEventListener('characteristicvaluechanged', listeners.dataChange)
+    }
+    deviceListeners.current.delete(deviceId)
+  }, [])
+
+  const cleanupDevice = useCallback((deviceId: string, currentDevices: Map<string, ConnectedDevice>) => {
     const timer = reconnectTimers.current.get(deviceId)
     if (timer) {
       clearTimeout(timer)
@@ -42,20 +65,25 @@ export function useBle() {
     }
     reconnectAttempts.current.delete(deviceId)
 
-    setConnectedDevices((prev) => {
-      const next = new Map(prev)
-      const entry = next.get(deviceId)
-      if (entry?.server.connected) {
+    const entry = currentDevices.get(deviceId)
+    if (entry) {
+      removeDeviceListeners(deviceId, entry.device)
+      if (entry.server.connected) {
         entry.server.disconnect()
       }
+    }
+
+    setConnectedDevices((prev) => {
+      const next = new Map(prev)
       next.delete(deviceId)
       return next
     })
-  }, [])
+  }, [removeDeviceListeners])
 
   const subscribeToCharacteristics = useCallback(
     async (device: BluetoothDevice, server: BluetoothRemoteGATTServer, type: BleDeviceType) => {
       const config = BLE_DEVICE_CONFIGS[type]
+      const listeners: Partial<DeviceListeners> = {}
 
       // Read battery level
       try {
@@ -65,14 +93,15 @@ export function useBle() {
         const level = batteryValue.getUint8(0)
         setBatteryLevels((prev) => new Map(prev).set(device.id, level))
 
-        // Subscribe to battery updates
         await batteryChar.startNotifications()
-        batteryChar.addEventListener('characteristicvaluechanged', ((e: Event) => {
+        const batteryHandler = ((e: Event) => {
           const target = e.target as BluetoothRemoteGATTCharacteristic
           if (!target.value) return
-          const lvl = target.value.getUint8(0)
-          setBatteryLevels((prev) => new Map(prev).set(device.id, lvl))
-        }) as EventListener)
+          setBatteryLevels((prev) => new Map(prev).set(device.id, target.value!.getUint8(0)))
+        }) as EventListener
+        batteryChar.addEventListener('characteristicvaluechanged', batteryHandler)
+        listeners.batteryChar = batteryChar
+        listeners.batteryChange = batteryHandler
       } catch {
         // Battery service may not be available on all devices
       }
@@ -81,47 +110,34 @@ export function useBle() {
       try {
         const dataService = await server.getPrimaryService(config.dataCharacteristic.service)
 
-        // Try configured characteristic first, fall back to first notifiable one
         let dataChar: BluetoothRemoteGATTCharacteristic | null = null
         try {
           dataChar = await dataService.getCharacteristic(config.dataCharacteristic.characteristic)
         } catch {
           const allChars = await dataService.getCharacteristics()
           const notifiable = allChars.find((c) => c.properties.notify)
-          if (notifiable) {
-            console.log(`[BLE] Configured characteristic not found, using fallback: ${notifiable.uuid}`)
-            dataChar = notifiable
-          }
+          if (notifiable) dataChar = notifiable
         }
 
         if (dataChar) {
-          console.log(`[BLE] Subscribing to characteristic: ${dataChar.uuid}`)
           await dataChar.startNotifications()
-          console.log('[BLE] Notifications started successfully')
-          dataChar.addEventListener('characteristicvaluechanged', ((e: Event) => {
+          const dataHandler = ((e: Event) => {
             const target = e.target as BluetoothRemoteGATTCharacteristic
-            if (!target.value) {
-              console.log('[BLE] Received notification with no value')
-              return
-            }
-            // Log raw bytes
-            const bytes = new Uint8Array(target.value.buffer)
-            if (bytes.length > 1) console.log(`[BLE] Raw data (${bytes.length} bytes):`, Array.from(bytes)) // Process data if there are multiple bytes — single-byte notifications may just be status updates
+            if (!target.value) return
             if (pausedRef.current) return
             if (type === 'radar') {
-              const threats = parseRadarData(target.value)
-              if (threats.length > 0) {
-                console.log('[BLE] Parsed threats:', threats)
-              }
-              setRadarData(threats)
+              setRadarData(parseRadarData(target.value))
             }
-          }) as EventListener)
-        } else {
-          console.warn('[BLE] No notifiable characteristic found on radar service')
+          }) as EventListener
+          dataChar.addEventListener('characteristicvaluechanged', dataHandler)
+          listeners.dataChar = dataChar
+          listeners.dataChange = dataHandler
         }
       } catch (err) {
         console.error(`Failed to subscribe to ${config.label} data:`, err)
       }
+
+      return listeners
     },
     [],
   )
@@ -130,9 +146,11 @@ export function useBle() {
     async (device: BluetoothDevice, type: BleDeviceType): Promise<boolean> => {
       try {
         const config = BLE_DEVICE_CONFIGS[type]
-        console.log(`[BLE] Connecting to ${device.name ?? device.id} (${type})...`)
+
+        // Clean up any existing listeners from a previous connection
+        removeDeviceListeners(device.id, device)
+
         const server = await device.gatt!.connect()
-        console.log('[BLE] GATT server connected')
 
         const entry: ConnectedDevice = {
           device,
@@ -144,9 +162,7 @@ export function useBle() {
         setConnectedDevices((prev) => new Map(prev).set(device.id, entry))
         reconnectAttempts.current.set(device.id, 0)
 
-        console.log('[BLE] Subscribing to characteristics...')
-        await subscribeToCharacteristics(device, server, type)
-        console.log('[BLE] Subscription complete')
+        const charListeners = await subscribeToCharacteristics(device, server, type)
 
         // Persist to DB
         await db.devices.put({
@@ -157,7 +173,7 @@ export function useBle() {
         })
 
         // Handle disconnection
-        device.addEventListener('gattserverdisconnected', () => {
+        const disconnectHandler = () => {
           if (!mountedRef.current) return
           setConnectedDevices((prev) => {
             const next = new Map(prev)
@@ -183,6 +199,14 @@ export function useBle() {
             }, delay)
             reconnectTimers.current.set(device.id, timer)
           }
+        }
+
+        device.addEventListener('gattserverdisconnected', disconnectHandler)
+
+        // Store all listeners for cleanup
+        deviceListeners.current.set(device.id, {
+          disconnect: disconnectHandler,
+          ...charListeners,
         })
 
         return true
@@ -191,7 +215,7 @@ export function useBle() {
         return false
       }
     },
-    [subscribeToCharacteristics],
+    [subscribeToCharacteristics, removeDeviceListeners],
   )
 
   // Keep ref in sync
@@ -235,7 +259,7 @@ export function useBle() {
       const entry = connectedDevices.get(deviceId)
       if (entry?.type === 'radar') setRadarData([])
 
-      cleanupDevice(deviceId)
+      cleanupDevice(deviceId, connectedDevices)
       setBatteryLevels((prev) => {
         const next = new Map(prev)
         next.delete(deviceId)
@@ -285,12 +309,22 @@ export function useBle() {
   // Cleanup on unmount
   useEffect(() => {
     const timers = reconnectTimers.current
+    const listeners = deviceListeners.current
     return () => {
       mountedRef.current = false
       for (const timer of timers.values()) {
         clearTimeout(timer)
       }
+      // Disconnect all GATT servers and remove listeners
+      for (const [id, entry] of connectedDevices) {
+        removeDeviceListeners(id, entry.device)
+        if (entry.server.connected) {
+          entry.server.disconnect()
+        }
+      }
+      listeners.clear()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return {
