@@ -1,3 +1,8 @@
+/* Hide leaflet.offline savetiles control UI */
+.savetiles {
+  display: none;
+}
+
 /* Loading screen */
 .loading {
   display: flex;
@@ -10,73 +15,217 @@
 
 /* Landing page */
 .landing {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  height: 100%;
+  min-height: 100%;
+  background: #1a1e2b;
+  color: #e8e8ec;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.landing-topo {
+  position: fixed;
+  inset: 0;
+  opacity: 0.04;
+  pointer-events: none;
+  background-image:
+    repeating-conic-gradient(
+      from 0deg at 50% 50%,
+      transparent 0deg 80deg,
+      rgba(255,255,255,0.03) 80deg 82deg,
+      transparent 82deg 360deg
+    ),
+    radial-gradient(ellipse 600px 400px at 30% 20%, rgba(51,136,255,0.15), transparent),
+    radial-gradient(ellipse 500px 300px at 70% 80%, rgba(245,158,11,0.1), transparent);
 }
 
 .landing-content {
-  text-align: center;
-  max-width: 400px;
-  padding: 2rem;
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  padding: 2.5rem 1.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.landing-content h1 {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
+.landing-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  animation: fadeSlideUp 0.5s ease both;
 }
 
-.landing-content p {
-  color: #666;
-  margin-bottom: 1.5rem;
+.landing-icon {
+  width: 44px;
+  height: 44px;
+  background: rgba(51,136,255,0.15);
+  border: 1px solid rgba(51,136,255,0.3);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5ba0ff;
+  flex-shrink: 0;
+}
+
+.landing-header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.landing-tagline {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #9a9bb0;
+  animation: fadeSlideUp 0.5s ease 0.05s both;
+}
+
+.landing-features {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.feature-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  animation: fadeSlideUp 0.5s ease both;
+}
+
+.feature-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7db5ff;
+  flex-shrink: 0;
+}
+
+.feature-card strong {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #d4d5e0;
+  margin-bottom: 0.15rem;
+}
+
+.feature-card span {
+  font-size: 0.82rem;
+  color: #7e7f94;
+  line-height: 1.45;
+}
+
+.landing-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  animation: fadeSlideUp 0.5s ease 0.5s both;
 }
 
 .add-route-btn {
   background: #3388ff;
   color: white;
   border: none;
-  padding: 0.75rem 2rem;
+  padding: 0.85rem 1.5rem;
   font-size: 1rem;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  font-weight: 500;
-  display: block;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   width: 100%;
+  transition: background 0.15s ease;
 }
 
 .add-route-btn:hover {
   background: #2670d9;
 }
 
+.add-route-btn:active {
+  background: #1e5fbd;
+}
+
 .add-route-btn:disabled {
-  background: #99bbee;
+  background: #2a4a7a;
+  color: #6888b8;
   cursor: not-allowed;
 }
 
+.btn-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .explore-btn {
-  background: none;
-  color: #3388ff;
-  border: 1px solid #3388ff;
-  padding: 0.75rem 2rem;
+  background: rgba(255,255,255,0.06);
+  color: #b0b1c4;
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 0.85rem 1.5rem;
   font-size: 1rem;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 500;
-  margin-top: 0.75rem;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   width: 100%;
+  transition: all 0.15s ease;
 }
 
 .explore-btn:hover {
-  background: #2670d9;
-  color: white;
+  background: rgba(255,255,255,0.1);
+  color: #e0e0ec;
+  border-color: rgba(255,255,255,0.15);
+}
+
+.explore-btn:active {
+  background: rgba(255,255,255,0.14);
+}
+
+.landing-hint {
+  font-size: 0.78rem;
+  color: #55566b;
+  line-height: 1.5;
+  text-align: center;
+  animation: fadeSlideUp 0.5s ease 0.6s both;
 }
 
 .error {
-  color: #d32f2f;
-  margin-top: 1rem;
-  font-size: 0.9rem;
+  color: #ff6b6b;
+  font-size: 0.88rem;
+  padding: 0.6rem 0.75rem;
+  background: rgba(255,80,80,0.1);
+  border: 1px solid rgba(255,80,80,0.2);
+  border-radius: 8px;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Map screen */
@@ -91,7 +240,8 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 1rem;
-  background: white;
+  background: #1a1e2b;
+  color: #e8e8ec;
   border-bottom: 1px solid #ddd;
   z-index: 1000;
   flex-shrink: 0;
@@ -155,7 +305,7 @@
   border: none;
   padding: 0.25rem;
   cursor: pointer;
-  color: #333;
+  color: #e8e8ec;
   display: flex;
   align-items: center;
   flex-shrink: 0;
@@ -179,7 +329,7 @@
 
 .save-area-btn {
   background: #3388ff;
-  color: white;
+  color: #e8e8ec;
   border: none;
   padding: 0.4rem 0.8rem;
   font-size: 0.8rem;
@@ -200,8 +350,8 @@
 
 .dismiss-btn {
   background: none;
-  color: #666;
-  border: 1px solid #ccc;
+  color: #e8e8ec;
+  border: 1px solid #e8e8ec;
   padding: 0.4rem 0.8rem;
   font-size: 0.8rem;
   border-radius: 4px;
@@ -211,6 +361,7 @@
 
 .dismiss-btn:hover {
   background: #f0f0f0;
+  color: #1a1e2b;
 }
 
 /* Delete button */
