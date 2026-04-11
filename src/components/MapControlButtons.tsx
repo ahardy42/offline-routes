@@ -8,6 +8,9 @@ interface MapControlButtonsProps {
   onLocationLongPress: () => void
   onFitRoute: () => void
   showFitRoute?: boolean
+  onBlePress?: () => void
+  bleConnected?: boolean
+  bleAvailable?: boolean
 }
 
 const LONG_PRESS_MS = 600
@@ -19,6 +22,9 @@ export function MapControlButtons({
   onLocationLongPress,
   onFitRoute,
   showFitRoute = true,
+  onBlePress,
+  bleConnected = false,
+  bleAvailable = false,
 }: MapControlButtonsProps) {
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const didLongPress = useRef(false)
@@ -84,6 +90,17 @@ export function MapControlButtons({
 
   return (
     <div className="map-btn-group">
+      {bleAvailable && onBlePress && (
+        <button
+          className={`map-btn ble-btn ${bleConnected ? 'connected' : ''}`}
+          onClick={onBlePress}
+          title="Bluetooth devices"
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" fill={bleConnected ? '#3388ff' : 'none'} stroke={bleConnected ? '#3388ff' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11" />
+          </svg>
+        </button>
+      )}
       <button
         className={`map-btn location-btn ${locationMode}`}
         onPointerDown={handlePointerDown}

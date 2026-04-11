@@ -8,8 +8,11 @@ import { DeleteRouteButton } from './DeleteRouteButton'
 import { MapControlButtons } from './MapControlButtons'
 import { UserLocationMarker } from './UserLocationMarker'
 import { CacheBoundaryOverlay } from './CacheBoundaryOverlay'
+import { RadarOverlay } from './RadarOverlay'
+import { BleSettingsDrawer } from './BleSettingsDrawer'
 import { useTileCache } from '../hooks/useTileCache'
 import { useUserLocation } from '../hooks/useUserLocation'
+import { useBle } from '../hooks/useBle'
 import { MAX_AREA_SQ_MILES, VT_CENTER, VT_ZOOM, LOCATION_ZOOM } from '../lib/constants'
 import type { SavedRoute } from '../db'
 
@@ -29,6 +32,17 @@ export function MapScreen({ route, onDelete, onSaveArea, onDismissBoundary }: Ma
   const needsGeolocate = !isRoute && !hasBounds
 
   const { status: cacheStatus, progress, cacheTiles } = useTileCache()
+  const {
+    bleAvailable,
+    connectedDevices,
+    radarData,
+    batteryLevels,
+    requestDevice,
+    forgetDevice,
+  } = useBle()
+  const [bleDrawerOpen, setBleDrawerOpen] = useState(false)
+  const hasRadar = Array.from(connectedDevices.values()).some((d) => d.type === 'radar')
+
   const {
     mode: locationMode,
     position,
@@ -162,6 +176,7 @@ export function MapScreen({ route, onDelete, onSaveArea, onDismissBoundary }: Ma
         boundsOptions={hasBounds ? { padding: [20, 20] } : undefined}
         className="map-container"
         ref={mapRef}
+        zoomControl={false}
       >
         <OfflineTileLayer onLayerReady={handleLayerReady} />
         {hasGeo && (
@@ -180,6 +195,8 @@ export function MapScreen({ route, onDelete, onSaveArea, onDismissBoundary }: Ma
         />
       </MapContainer>
 
+      {hasRadar && <RadarOverlay threats={radarData} />}
+
       <MapControlButtons
         locationMode={locationMode}
         locationError={locationError}
@@ -187,6 +204,18 @@ export function MapScreen({ route, onDelete, onSaveArea, onDismissBoundary }: Ma
         onLocationLongPress={handleLocationLongPress}
         onFitRoute={handleFitRoute}
         showFitRoute={isRoute}
+        onBlePress={() => setBleDrawerOpen((v) => !v)}
+        bleConnected={connectedDevices.size > 0}
+        bleAvailable={bleAvailable}
+      />
+
+      <BleSettingsDrawer
+        open={bleDrawerOpen}
+        onClose={() => setBleDrawerOpen(false)}
+        connectedDevices={connectedDevices}
+        batteryLevels={batteryLevels}
+        onRequestDevice={requestDevice}
+        onForgetDevice={forgetDevice}
       />
     </div>
   )
