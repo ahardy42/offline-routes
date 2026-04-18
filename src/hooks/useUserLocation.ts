@@ -5,6 +5,7 @@ export type LocationMode = 'off' | 'locating' | 'showing' | 'following'
 interface UserLocationState {
   mode: LocationMode
   position: [number, number] | null
+  heading: number | null
   accuracy: number | null
   error: string | null
 }
@@ -13,6 +14,7 @@ export function useUserLocation() {
   const [state, setState] = useState<UserLocationState>({
     mode: 'off',
     position: null,
+    heading: null,
     accuracy: null,
     error: null,
   })
@@ -41,11 +43,16 @@ export function useUserLocation() {
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const position: [number, number] = [pos.coords.latitude, pos.coords.longitude]
+        const heading =
+          typeof pos.coords.heading === 'number' && Number.isFinite(pos.coords.heading)
+            ? pos.coords.heading
+            : null
         hasHadFirstFix.current = true
 
         setState((s) => ({
           ...s,
           position,
+          heading,
           accuracy: pos.coords.accuracy,
           mode: s.mode === 'locating' ? 'showing' : s.mode,
           error: null,
@@ -97,7 +104,7 @@ export function useUserLocation() {
       startWatch()
     } else {
       stopWatch()
-      setState({ mode: 'off', position: null, accuracy: null, error: null })
+      setState({ mode: 'off', position: null, heading: null, accuracy: null, error: null })
     }
   }, [startWatch, stopWatch])
 
@@ -128,6 +135,7 @@ export function useUserLocation() {
   return {
     mode: state.mode,
     position: state.position,
+    heading: state.heading,
     accuracy: state.accuracy,
     error: state.error,
     handlePress,

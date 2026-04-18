@@ -46,6 +46,7 @@ export function MapScreen({ route, onDelete, onSaveArea, onDismissBoundary }: Ma
   const {
     mode: locationMode,
     position,
+    heading,
     accuracy,
     error: locationError,
     handlePress: handleLocationPress,
@@ -191,6 +192,7 @@ export function MapScreen({ route, onDelete, onSaveArea, onDismissBoundary }: Ma
         <UserLocationMarker
           position={position}
           accuracy={accuracy}
+          heading={heading}
           mode={locationMode}
         />
       </MapContainer>
